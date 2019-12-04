@@ -1,7 +1,7 @@
 # go tree-sitter
 
-[![Build Status](https://travis-ci.org/smacker/go-tree-sitter.svg?branch=master)](https://travis-ci.org/smacker/go-tree-sitter)
-[![GoDoc](https://godoc.org/github.com/smacker/go-tree-sitter?status.svg)](https://godoc.org/github.com/smacker/go-tree-sitter)
+[![Build Status](https://travis-ci.org/kiteco/go-tree-sitter.svg?branch=master)](https://travis-ci.org/kiteco/go-tree-sitter)
+[![GoDoc](https://godoc.org/github.com/kiteco/go-tree-sitter?status.svg)](https://godoc.org/github.com/kiteco/go-tree-sitter)
 
 Golang bindings for [tree-sitter](https://github.com/tree-sitter/tree-sitter)
 
@@ -11,8 +11,8 @@ Create a parser with that grammar:
 
 ```go
 import (
-	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/javascript"
+	sitter "github.com/kiteco/go-tree-sitter"
+	"github.com/kiteco/go-tree-sitter/javascript"
 )
 
 parser := sitter.NewParser()

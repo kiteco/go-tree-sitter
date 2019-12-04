@@ -3,8 +3,8 @@ package bash_test
 import (
 	"testing"
 
-	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/bash"
+	sitter "github.com/kiteco/go-tree-sitter"
+	"github.com/kiteco/go-tree-sitter/bash"
 	"github.com/stretchr/testify/assert"
 )
 
