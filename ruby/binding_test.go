@@ -3,8 +3,8 @@ package ruby_test
 import (
 	"testing"
 
-	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/ruby"
+	sitter "github.com/kiteco/go-tree-sitter"
+	"github.com/kiteco/go-tree-sitter/ruby"
 	"github.com/stretchr/testify/assert"
 )
 

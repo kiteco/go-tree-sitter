@@ -3,8 +3,8 @@ package golang_test
 import (
 	"testing"
 
-	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/golang"
+	sitter "github.com/kiteco/go-tree-sitter"
+	"github.com/kiteco/go-tree-sitter/golang"
 	"github.com/stretchr/testify/assert"
 )
 
