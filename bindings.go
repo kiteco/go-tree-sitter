@@ -112,7 +112,7 @@ type Range struct {
 // newTree creates a new tree object from a C pointer. The function will set a finalizer for the object,
 // thus no free is needed for it.
 func (p *Parser) newTree(c *C.TSTree) *Tree {
-	newTree := &Tree{p: p, c: c, cache: make(map[C.TSNode]*Node)}
+	newTree := &Tree{p: p, c: c, cache: make(map[uintptr]*Node)}
 	runtime.SetFinalizer(newTree, deleteTree)
 	return newTree
 }
@@ -127,7 +127,7 @@ type Tree struct {
 
 	c *C.TSTree
 	// most probably better save node.id
-	cache map[C.TSNode]*Node
+	cache map[uintptr]*Node
 }
 
 // Copy returns a new copy of a tree
@@ -146,12 +146,12 @@ func (t *Tree) cachedNode(ptr C.TSNode) *Node {
 		return nil
 	}
 
-	if n, ok := t.cache[ptr]; ok {
+	if n, ok := t.cache[uintptr(ptr.id)]; ok {
 		return n
 	}
 
 	n := &Node{ptr, t}
-	t.cache[ptr] = n
+	t.cache[uintptr(ptr.id)] = n
 	return n
 }
 
@@ -393,7 +393,6 @@ func (n Node) Content(input []byte) string {
 	return string(input[n.StartByte():n.EndByte()])
 }
 
-
 // TreeCursor allows you to walk a syntax tree more efficiently than is
 // possible using the `Node` functions. It is a mutable object that is always
 // on a certain syntax node, and can be moved imperatively to different nodes.
@@ -405,7 +404,7 @@ type TreeCursor struct {
 // NewTreeCursor creates a new tree cursor starting from the given node.
 func NewTreeCursor(n *Node) *TreeCursor {
 	cc := C.ts_tree_cursor_new(n.c)
-	c:= &TreeCursor{
+	c := &TreeCursor{
 		c: &cc,
 		t: n.t,
 	}
