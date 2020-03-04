@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"sync"
 	"unsafe"
 )
 
@@ -19,20 +18,12 @@ func Parse(content []byte, lang *Language) *Node {
 }
 
 // Parser produces concrete syntax tree based on source code using Language
-type Parser struct {
-	cm sync.Mutex
-	c  *C.TSParser
-
-	tm       sync.Mutex
-	contents []byte
-	tokens   []Token
-}
+type Parser struct{ c *C.TSParser }
 
 // NewParser creates new Parser
 func NewParser() *Parser {
-	p := &Parser{c: C.ts_parser_new()}
+	p := &Parser{C.ts_parser_new()}
 	runtime.SetFinalizer(p, deleteParser)
-	registerParser(p)
 	return p
 }
 
@@ -49,9 +40,6 @@ func (p *Parser) Parse(content []byte) *Tree {
 
 // ParseWithTree produces new Tree from content using old tree
 func (p *Parser) ParseWithTree(content []byte, t *Tree) *Tree {
-	p.contents = make([]byte, len(content))
-	copy(p.contents, content)
-
 	var cTree *C.TSTree
 	if t != nil {
 		cTree = t.c
@@ -77,11 +65,6 @@ func (p *Parser) SetOperationLimit(limit int) {
 // so that it sees the changes to the beginning of the source code.
 func (p *Parser) Reset() {
 	C.ts_parser_reset(p.c)
-}
-
-// Clear ...
-func (p *Parser) Clear() {
-	deleteParser(p)
 }
 
 // SetIncludedRanges sets text ranges of a file
@@ -111,19 +94,7 @@ func (p *Parser) Debug() {
 }
 
 func deleteParser(p *Parser) {
-	p.cm.Lock()
-	defer p.cm.Unlock()
-	deleteParserLocked(p)
-}
-
-func deleteParserLocked(p *Parser) {
-	if p.c != nil {
-		unregisterParser(p)
-		C.ts_parser_delete(p.c)
-	}
-	p.c = nil
-	p.contents = nil
-	p.tokens = nil
+	C.ts_parser_delete(p.c)
 }
 
 type Point struct {
@@ -154,7 +125,6 @@ type Tree struct {
 	// Otherwise Parser may be GC'ed (and deleted by the finalizer) while some Tree objects are still in use.
 	p *Parser
 
-	m sync.Mutex
 	c *C.TSTree
 	// most probably better save node.id
 	cache map[C.TSNode]*Node
@@ -185,23 +155,9 @@ func (t *Tree) cachedNode(ptr C.TSNode) *Node {
 	return n
 }
 
-// Clear ...
-func (t *Tree) Clear() {
-	deleteTree(t)
-}
-
 func deleteTree(t *Tree) {
-	t.m.Lock()
-	defer t.m.Unlock()
-	deleteTreeLocked(t)
-}
-
-func deleteTreeLocked(t *Tree) {
 	t.cache = nil
-	if t.c != nil {
-		C.ts_tree_delete(t.c)
-	}
-	t.c = nil
+	C.ts_tree_delete(t.c)
 }
 
 type EditInput struct {
@@ -246,11 +202,6 @@ type Language struct {
 // NewLanguage creates new Language from c pointer
 func NewLanguage(ptr unsafe.Pointer) *Language {
 	return &Language{ptr}
-}
-
-// SymbolNameInt ...
-func (l *Language) SymbolNameInt(s int) string {
-	return l.SymbolName(Symbol(s))
 }
 
 // SymbolName returns a node type string for the given Symbol.
@@ -442,6 +393,7 @@ func (n Node) Content(input []byte) string {
 	return string(input[n.StartByte():n.EndByte()])
 }
 
+
 // TreeCursor allows you to walk a syntax tree more efficiently than is
 // possible using the `Node` functions. It is a mutable object that is always
 // on a certain syntax node, and can be moved imperatively to different nodes.
@@ -453,7 +405,7 @@ type TreeCursor struct {
 // NewTreeCursor creates a new tree cursor starting from the given node.
 func NewTreeCursor(n *Node) *TreeCursor {
 	cc := C.ts_tree_cursor_new(n.c)
-	c := &TreeCursor{
+	c:= &TreeCursor{
 		c: &cc,
 		t: n.t,
 	}

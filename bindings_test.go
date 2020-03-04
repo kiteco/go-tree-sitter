@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	sitter "github.com/kiteco/go-tree-sitter"
-	"github.com/kiteco/go-tree-sitter/golang"
-	"github.com/kiteco/go-tree-sitter/javascript"
+	sitter "github.com/smacker/go-tree-sitter"
+	"github.com/smacker/go-tree-sitter/golang"
+	"github.com/smacker/go-tree-sitter/javascript"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

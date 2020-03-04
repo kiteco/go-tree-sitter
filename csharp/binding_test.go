@@ -1,10 +1,10 @@
 package csharp_test
 
 import (
-	"github.com/kiteco/go-tree-sitter/csharp"
+	"github.com/smacker/go-tree-sitter/csharp"
 	"testing"
 
-	sitter "github.com/kiteco/go-tree-sitter"
+	sitter "github.com/smacker/go-tree-sitter"
 	"github.com/stretchr/testify/assert"
 )
 

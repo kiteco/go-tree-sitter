@@ -3,8 +3,8 @@ package tsx_test
 import (
 	"testing"
 
-	sitter "github.com/kiteco/go-tree-sitter"
-	"github.com/kiteco/go-tree-sitter/typescript/tsx"
+	sitter "github.com/smacker/go-tree-sitter"
+	"github.com/smacker/go-tree-sitter/typescript/tsx"
 	"github.com/stretchr/testify/assert"
 )
 

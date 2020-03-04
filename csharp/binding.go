@@ -7,7 +7,7 @@ import "C"
 import (
 	"unsafe"
 
-	sitter "github.com/kiteco/go-tree-sitter"
+	sitter "github.com/smacker/go-tree-sitter"
 )
 
 // GetLanguage returns a grammar for C# language.
