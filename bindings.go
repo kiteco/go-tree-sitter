@@ -433,8 +433,17 @@ func NewTreeCursor(n *Node) *TreeCursor {
 	return c
 }
 
+// Close releases the resources used by the tree cursor. Once called,
+// the cursor shouldn't be used anymore.
+func (c *TreeCursor) Close() {
+	runtime.SetFinalizer(c, nil)
+	deleteTreeCursor(c)
+}
+
 func deleteTreeCursor(c *TreeCursor) {
+	c.t = nil
 	C.ts_tree_cursor_delete(c.c)
+	c.c = nil
 }
 
 // Reset re-initializes a tree cursor to start at a different node.
@@ -560,8 +569,16 @@ func NewQuery(pattern []byte, lang *Language) (*Query, error) {
 	return q, nil
 }
 
+// Close releases the resources used by the query. Once called,
+// the query shouldn't be used anymore.
+func (q *Query) Close() {
+	runtime.SetFinalizer(q, nil)
+	deleteQuery(q)
+}
+
 func deleteQuery(q *Query) {
 	C.ts_query_delete(q.c)
+	q.c = nil
 }
 
 // QueryCursor carries the state needed for processing the queries.
@@ -577,8 +594,18 @@ func NewQueryCursor() *QueryCursor {
 
 	return qc
 }
+
+// Close releases the resources used by the query cursor. Once called,
+// the cursor shouldn't be used anymore.
+func (qc *QueryCursor) Close() {
+	runtime.SetFinalizer(qc, nil)
+	deleteQueryCursor(qc)
+}
+
 func deleteQueryCursor(qc *QueryCursor) {
+	qc.t = nil
 	C.ts_query_cursor_delete(qc.c)
+	qc.c = nil
 }
 
 // Exec executes the query on a given syntax node.
