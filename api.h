@@ -398,6 +398,13 @@ void ts_tree_print_dot_graph(const TSTree *, FILE *);
 /* Section - Node */
 /******************/
 
+
+/**
+ * Get many of the node's info in a single call, an optimization for Go->Cgo.
+ * Returns the type string.
+ */
+const char* ts_node_batch_get_info(TSNode, TSPoint*, TSPoint*, uint32_t*, uint32_t*, uint32_t*, TSSymbol*);
+
 /**
  * Get the node's type as a null-terminated string.
  */

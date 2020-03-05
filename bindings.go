@@ -160,7 +160,8 @@ func (t *Tree) createNode(ptr C.TSNode) *Node {
 	if ptr.id == nil {
 		return nil
 	}
-	n := &Node{ptr, t}
+	n := &Node{c: ptr, t: t}
+	n.batchFill()
 	return n
 }
 
@@ -235,6 +236,30 @@ func (l *Language) SymbolCount() uint32 {
 type Node struct {
 	c C.TSNode
 	t *Tree // keep pointer on tree because node is valid only as long as tree is
+
+	batchLoaded    bool // true if the following fields have been filled
+	startPt, endPt Point
+	startB, endB   uint32
+	childCount     uint32
+	sym            Symbol
+	typ            string
+}
+
+func (n *Node) batchFill() {
+	var (
+		sp, ep     C.TSPoint
+		sb, eb, cc C.uint32_t
+		sym        C.TSSymbol
+	)
+	typ := C.GoString(C.ts_node_batch_get_info(n.c, &sp, &ep, &sb, &eb, &cc, &sym))
+	n.batchLoaded = true
+	n.startPt = Point{Row: uint32(sp.row), Column: uint32(sp.column)}
+	n.endPt = Point{Row: uint32(ep.row), Column: uint32(ep.column)}
+	n.startB = uint32(sb)
+	n.endB = uint32(eb)
+	n.childCount = uint32(cc)
+	n.sym = sym
+	n.typ = typ
 }
 
 type Symbol = C.TSSymbol
@@ -258,17 +283,26 @@ func (t SymbolType) String() string {
 }
 
 // StartByte returns the node's start byte.
-func (n Node) StartByte() uint32 {
+func (n *Node) StartByte() uint32 {
+	if n.batchLoaded {
+		return n.startB
+	}
 	return uint32(C.ts_node_start_byte(n.c))
 }
 
 // EndByte returns the node's end byte.
-func (n Node) EndByte() uint32 {
+func (n *Node) EndByte() uint32 {
+	if n.batchLoaded {
+		return n.endB
+	}
 	return uint32(C.ts_node_end_byte(n.c))
 }
 
 // StartPoint returns the node's start position in terms of rows and columns.
-func (n Node) StartPoint() Point {
+func (n *Node) StartPoint() Point {
+	if n.batchLoaded {
+		return n.startPt
+	}
 	p := C.ts_node_start_point(n.c)
 	return Point{
 		Row:    uint32(p.row),
@@ -277,7 +311,10 @@ func (n Node) StartPoint() Point {
 }
 
 // EndPoint returns the node's end position in terms of rows and columns.
-func (n Node) EndPoint() Point {
+func (n *Node) EndPoint() Point {
+	if n.batchLoaded {
+		return n.endPt
+	}
 	p := C.ts_node_end_point(n.c)
 	return Point{
 		Row:    uint32(p.row),
@@ -286,120 +323,129 @@ func (n Node) EndPoint() Point {
 }
 
 // Symbol returns the node's type as a Symbol.
-func (n Node) Symbol() Symbol {
+func (n *Node) Symbol() Symbol {
+	if n.batchLoaded {
+		return n.sym
+	}
 	return C.ts_node_symbol(n.c)
 }
 
 // Type returns the node's type as a string.
-func (n Node) Type() string {
+func (n *Node) Type() string {
+	if n.batchLoaded {
+		return n.typ
+	}
 	return C.GoString(C.ts_node_type(n.c))
 }
 
 // String returns an S-expression representing the node as a string.
-func (n Node) String() string {
+func (n *Node) String() string {
 	ptr := C.ts_node_string(n.c)
 	defer C.free(unsafe.Pointer(ptr))
 	return C.GoString(ptr)
 }
 
 // Equal checks if two nodes are identical.
-func (n Node) Equal(other *Node) bool {
+func (n *Node) Equal(other *Node) bool {
 	return bool(C.ts_node_eq(n.c, other.c))
 }
 
 // IsNull checks if the node is null.
-func (n Node) IsNull() bool {
+func (n *Node) IsNull() bool {
 	return bool(C.ts_node_is_null(n.c))
 }
 
 // IsNamed checks if the node is *named*.
 // Named nodes correspond to named rules in the grammar,
 // whereas *anonymous* nodes correspond to string literals in the grammar.
-func (n Node) IsNamed() bool {
+func (n *Node) IsNamed() bool {
 	return bool(C.ts_node_is_named(n.c))
 }
 
 // IsMissing checks if the node is *missing*.
 // Missing nodes are inserted by the parser in order to recover from certain kinds of syntax errors.
-func (n Node) IsMissing() bool {
+func (n *Node) IsMissing() bool {
 	return bool(C.ts_node_is_missing(n.c))
 }
 
 // HasChanges checks if a syntax node has been edited.
-func (n Node) HasChanges() bool {
+func (n *Node) HasChanges() bool {
 	return bool(C.ts_node_has_changes(n.c))
 }
 
 // HasError check if the node is a syntax error or contains any syntax errors.
-func (n Node) HasError() bool {
+func (n *Node) HasError() bool {
 	return bool(C.ts_node_has_error(n.c))
 }
 
 // Parent returns the node's immediate parent.
-func (n Node) Parent() *Node {
+func (n *Node) Parent() *Node {
 	nn := C.ts_node_parent(n.c)
 	return n.t.createNode(nn)
 }
 
 // Child returns the node's child at the given index, where zero represents the first child.
-func (n Node) Child(idx int) *Node {
+func (n *Node) Child(idx int) *Node {
 	nn := C.ts_node_child(n.c, C.uint32_t(idx))
 	return n.t.createNode(nn)
 }
 
 // NamedChild returns the node's *named* child at the given index.
-func (n Node) NamedChild(idx int) *Node {
+func (n *Node) NamedChild(idx int) *Node {
 	nn := C.ts_node_named_child(n.c, C.uint32_t(idx))
 	return n.t.createNode(nn)
 }
 
 // ChildCount returns the node's number of children.
-func (n Node) ChildCount() uint32 {
+func (n *Node) ChildCount() uint32 {
+	if n.batchLoaded {
+		return n.childCount
+	}
 	return uint32(C.ts_node_child_count(n.c))
 }
 
 // NamedChildCount returns the node's number of *named* children.
-func (n Node) NamedChildCount() uint32 {
+func (n *Node) NamedChildCount() uint32 {
 	return uint32(C.ts_node_named_child_count(n.c))
 }
 
 // ChildByFieldName returns the node's child with the given field name.
-func (n Node) ChildByFieldName(name string) *Node {
+func (n *Node) ChildByFieldName(name string) *Node {
 	nn := C.ts_node_child_by_field_name(n.c, C.CString(name), C.uint32_t(len(name)))
 	return n.t.createNode(nn)
 }
 
 // NextSibling returns the node's next sibling.
-func (n Node) NextSibling() *Node {
+func (n *Node) NextSibling() *Node {
 	nn := C.ts_node_next_sibling(n.c)
 	return n.t.createNode(nn)
 }
 
 // NextNamedSibling returns the node's next *named* sibling.
-func (n Node) NextNamedSibling() *Node {
+func (n *Node) NextNamedSibling() *Node {
 	nn := C.ts_node_next_named_sibling(n.c)
 	return n.t.createNode(nn)
 }
 
 // PrevSibling returns the node's previous sibling.
-func (n Node) PrevSibling() *Node {
+func (n *Node) PrevSibling() *Node {
 	nn := C.ts_node_prev_sibling(n.c)
 	return n.t.createNode(nn)
 }
 
 // PrevNamedSibling returns the node's previous *named* sibling.
-func (n Node) PrevNamedSibling() *Node {
+func (n *Node) PrevNamedSibling() *Node {
 	nn := C.ts_node_prev_named_sibling(n.c)
 	return n.t.createNode(nn)
 }
 
 // Edit the node to keep it in-sync with source code that has been edited.
-func (n Node) Edit(i EditInput) {
+func (n *Node) Edit(i EditInput) {
 	C.ts_node_edit(&n.c, i.c())
 }
 
 // Content returns node's source code from input as a string
-func (n Node) Content(input []byte) string {
+func (n *Node) Content(input []byte) string {
 	return string(input[n.StartByte():n.EndByte()])
 }
 

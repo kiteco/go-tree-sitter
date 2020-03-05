@@ -27,6 +27,16 @@ TSNode ts_node_new(
   };
 }
 
+const char* ts_node_batch_get_info(TSNode self, TSPoint* start_pt, TSPoint* end_pt, uint32_t* start_b, uint32_t* end_b, uint32_t* child_count, TSSymbol* symbol) {
+  *start_pt = ts_node_start_point(self);
+  *end_pt = ts_node_end_point(self);
+  *start_b = ts_node_start_byte(self);
+  *end_b = ts_node_end_byte(self);
+  *child_count = ts_node_child_count(self);
+  *symbol = ts_node_symbol(self);
+  return ts_node_type(self);
+}
+
 static inline TSNode ts_node__null(void) {
   return ts_node_new(NULL, NULL, length_zero(), 0);
 }
