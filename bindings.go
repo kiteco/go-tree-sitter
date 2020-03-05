@@ -123,7 +123,7 @@ type Range struct {
 // newTree creates a new tree object from a C pointer. The function will set a finalizer for the object,
 // thus no free is needed for it.
 func (p *Parser) newTree(c *C.TSTree) *Tree {
-	newTree := &Tree{p: p, c: c, cache: make(map[uintptr]*Node)}
+	newTree := &Tree{p: p, c: c}
 	runtime.SetFinalizer(newTree, deleteTree)
 	return newTree
 }
@@ -135,10 +135,7 @@ type Tree struct {
 	// p is a pointer to a Parser that produced the Tree. Only used to keep Parser alive.
 	// Otherwise Parser may be GC'ed (and deleted by the finalizer) while some Tree objects are still in use.
 	p *Parser
-
 	c *C.TSTree
-	// most probably better save node.id
-	cache map[uintptr]*Node
 }
 
 // Close releases the resources used by the tree. Once called,
@@ -156,25 +153,18 @@ func (t *Tree) Copy() *Tree {
 // RootNode returns root node of a tree
 func (t *Tree) RootNode() *Node {
 	ptr := C.ts_tree_root_node(t.c)
-	return t.cachedNode(ptr)
+	return t.createNode(ptr)
 }
 
-func (t *Tree) cachedNode(ptr C.TSNode) *Node {
+func (t *Tree) createNode(ptr C.TSNode) *Node {
 	if ptr.id == nil {
 		return nil
 	}
-
-	if n, ok := t.cache[uintptr(ptr.id)]; ok {
-		return n
-	}
-
 	n := &Node{ptr, t}
-	t.cache[uintptr(ptr.id)] = n
 	return n
 }
 
 func deleteTree(t *Tree) {
-	t.cache = nil
 	t.p = nil
 	C.ts_tree_delete(t.c)
 	t.c = nil
@@ -348,19 +338,19 @@ func (n Node) HasError() bool {
 // Parent returns the node's immediate parent.
 func (n Node) Parent() *Node {
 	nn := C.ts_node_parent(n.c)
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // Child returns the node's child at the given index, where zero represents the first child.
 func (n Node) Child(idx int) *Node {
 	nn := C.ts_node_child(n.c, C.uint32_t(idx))
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // NamedChild returns the node's *named* child at the given index.
 func (n Node) NamedChild(idx int) *Node {
 	nn := C.ts_node_named_child(n.c, C.uint32_t(idx))
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // ChildCount returns the node's number of children.
@@ -376,31 +366,31 @@ func (n Node) NamedChildCount() uint32 {
 // ChildByFieldName returns the node's child with the given field name.
 func (n Node) ChildByFieldName(name string) *Node {
 	nn := C.ts_node_child_by_field_name(n.c, C.CString(name), C.uint32_t(len(name)))
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // NextSibling returns the node's next sibling.
 func (n Node) NextSibling() *Node {
 	nn := C.ts_node_next_sibling(n.c)
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // NextNamedSibling returns the node's next *named* sibling.
 func (n Node) NextNamedSibling() *Node {
 	nn := C.ts_node_next_named_sibling(n.c)
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // PrevSibling returns the node's previous sibling.
 func (n Node) PrevSibling() *Node {
 	nn := C.ts_node_prev_sibling(n.c)
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // PrevNamedSibling returns the node's previous *named* sibling.
 func (n Node) PrevNamedSibling() *Node {
 	nn := C.ts_node_prev_named_sibling(n.c)
-	return n.t.cachedNode(nn)
+	return n.t.createNode(nn)
 }
 
 // Edit the node to keep it in-sync with source code that has been edited.
@@ -455,7 +445,7 @@ func (c *TreeCursor) Reset(n *Node) {
 // CurrentNode of the tree cursor.
 func (c *TreeCursor) CurrentNode() *Node {
 	n := C.ts_tree_cursor_current_node(c.c)
-	return c.t.cachedNode(n)
+	return c.t.createNode(n)
 }
 
 // CurrentFieldName gets the field name of the tree cursor's current node.
@@ -653,7 +643,7 @@ func (qc *QueryCursor) NextMatch() (*QueryMatch, bool) {
 	slice.Data = uintptr(unsafe.Pointer(cqm.captures))
 	for _, c := range cqc {
 		idx := uint32(c.index)
-		node := qc.t.cachedNode(c.node)
+		node := qc.t.createNode(c.node)
 		qm.Captures = append(qm.Captures, QueryCapture{idx, node})
 	}
 
