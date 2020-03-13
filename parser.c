@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <limits.h>
 #include <stdbool.h>
-#include "_cgo_export.h" // see lexer.go for exported function
 #include "api.h"
 #include "./alloc.h"
 #include "./array.h"
@@ -528,14 +527,6 @@ static Subtree ts_parser__lex(
       ts_subtree_total_size(result).bytes
     );
   }
-
-  cgoLexedToken(
-    self,
-    ts_subtree_symbol(result),
-    SYM_NAME(ts_subtree_symbol(result)),
-    self->lexer.token_start_position.bytes,
-    self->lexer.token_start_position.bytes + ts_subtree_size(result).bytes
-  );
 
   return result;
 }

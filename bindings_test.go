@@ -186,12 +186,12 @@ func TestSameNode(t *testing.T) {
 	n1 := tree.RootNode()
 	n2 := tree.RootNode()
 
-	assert.True(n1 == n2)
+	assert.True(n1.Equal(n2))
 
 	n1 = tree.RootNode().NamedChild(0)
 	n2 = tree.RootNode().NamedChild(0)
 
-	assert.True(n1 == n2)
+	assert.True(n1.Equal(n2))
 }
 
 func TestQuery(t *testing.T) {
@@ -317,7 +317,7 @@ func TestTreeCursor(t *testing.T) {
 	root := sitter.Parse(input, javascript.GetLanguage())
 	c := sitter.NewTreeCursor(root)
 
-	assert.True(c.CurrentNode() == root)
+	assert.True(c.CurrentNode().Equal(root))
 	assert.Equal("", c.CurrentFieldName())
 
 	assert.False(c.GoToParent())
